@@ -35,8 +35,8 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     # Modules
-    "modules.user",
-    "modules.role",
+    "apps.user",
+    "apps.role",
 ]
 
 AUTH_USER_MODEL = "user_module.UserModel"

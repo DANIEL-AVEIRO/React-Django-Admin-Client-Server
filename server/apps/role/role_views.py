@@ -1,14 +1,8 @@
 from rest_framework.decorators import api_view
-from utils.request import get_request_data
 from rest_framework.response import Response
-from .role_services import (
-    create_role,
-    delete_role,
-    get_all_roles,
-    get_role_by_id,
-    update_role,
-)
 from rest_framework import status
+from .models import RoleModel
+from django.contrib.auth.models import Permission
 
 
 @api_view(["GET"])
@@ -23,9 +17,9 @@ def role_health_check(request):
 
 
 @api_view(["GET"])
-def list(request):
+def role_list(request):
     try:
-        roles = get_all_roles()
+        roles = RoleModel.objects.all().order_by("-created_at")
         return Response(
             {
                 "success": True,
@@ -34,6 +28,14 @@ def list(request):
                     {
                         "id": str(role.id),
                         "name": role.name,
+                        "permissions": [
+                            {
+                                "id": str(permission.id),
+                                "name": permission.name,
+                                "codename": permission.codename,
+                            }
+                            for permission in role.permissions.all()
+                        ],
                         "description": role.description,
                         "is_active": role.is_active,
                         "created_at": role.created_at,
@@ -44,20 +46,28 @@ def list(request):
             },
             status=status.HTTP_200_OK,
         )
-    except ValueError as error:
+    except Exception as error:
         return Response(
             {
                 "success": False,
-                "message": str(error),
+                "message": f"Role list failed: {str(error)}",
             },
-            status=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
 @api_view(["GET"])
-def details(request, role_id):
+def role_details(request, pk):
     try:
-        role = get_role_by_id(role_id)
+        role = RoleModel.objects.get(id=pk).order_by("-created_at")
+        if role is None:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Role not found.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
         return Response(
             {
                 "success": True,
@@ -65,6 +75,14 @@ def details(request, role_id):
                 "data": {
                     "id": str(role.id),
                     "name": role.name,
+                    "permissions": [
+                        {
+                            "id": str(permission.id),
+                            "name": permission.name,
+                            "codename": permission.codename,
+                        }
+                        for permission in role.permissions.all()
+                    ],
                     "description": role.description,
                     "is_active": role.is_active,
                     "created_at": role.created_at,
@@ -73,22 +91,24 @@ def details(request, role_id):
             },
             status=status.HTTP_200_OK,
         )
-    except ValueError as error:
+    except Exception as error:
         return Response(
             {
                 "success": False,
-                "message": str(error),
+                "message": f"Role details failed: {str(error)}",
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
 @api_view(["POST"])
-def create(request):
-    data = get_request_data(request)
-    name = data.get("name")
-    description = data.get("description", "")
-    is_active = data.get("is_active", True)
+def role_create(request):
+    name = request.data.get("name")
+    permissions = request.data.get("permissions", [])
+    if permissions:
+        permissions = Permission.objects.filter(codename__in=permissions)
+    description = request.data.get("description", "")
+    is_active = request.data.get("is_active", True)
 
     if not name:
         return Response(
@@ -100,11 +120,14 @@ def create(request):
         )
 
     try:
-        role = create_role(
+        role = RoleModel.objects.create(
             name=name,
+            permissions=permissions,
             description=description,
             is_active=is_active,
         )
+        role.save()
+        role.permissions.set(permissions)
         return Response(
             {
                 "success": True,
@@ -112,6 +135,14 @@ def create(request):
                 "data": {
                     "id": str(role.id),
                     "name": role.name,
+                    "permissions": [
+                        {
+                            "id": str(permission.id),
+                            "name": permission.name,
+                            "codename": permission.codename,
+                        }
+                        for permission in role.permissions.all()
+                    ],
                     "description": role.description,
                     "is_active": role.is_active,
                     "created_at": role.created_at,
@@ -120,22 +151,24 @@ def create(request):
             },
             status=status.HTTP_201_CREATED,
         )
-    except ValueError as error:
+    except Exception as error:
         return Response(
             {
                 "success": False,
-                "message": str(error),
+                "message": f"Role creation failed: {str(error)}",
             },
-            status=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
 @api_view(["PUT"])
-def update(request, role_id):
-    data = get_request_data(request)
-    name = data.get("name")
-    description = data.get("description", "")
-    is_active = data.get("is_active", True)
+def role_update(request, pk):
+    name = request.data.get("name")
+    permissions = request.data.get("permissions", [])
+    if permissions:
+        permissions = Permission.objects.filter(codename__in=permissions)
+    description = request.data.get("description", "")
+    is_active = request.data.get("is_active", True)
 
     if not name:
         return Response(
@@ -147,12 +180,13 @@ def update(request, role_id):
         )
 
     try:
-        role = update_role(
-            role_id=role_id,
-            name=name,
-            description=description,
-            is_active=is_active,
-        )
+        role = RoleModel.objects.get(id=pk)
+        role.name = name
+        role.permissions = permissions
+        role.description = description
+        role.is_active = is_active
+        role.save()
+        role.permissions.set(permissions)
         return Response(
             {
                 "success": True,
@@ -160,6 +194,14 @@ def update(request, role_id):
                 "data": {
                     "id": str(role.id),
                     "name": role.name,
+                    "permissions": [
+                        {
+                            "id": str(permission.id),
+                            "name": permission.name,
+                            "codename": permission.codename,
+                        }
+                        for permission in role.permissions.all()
+                    ],
                     "description": role.description,
                     "is_active": role.is_active,
                     "created_at": role.created_at,
@@ -168,20 +210,21 @@ def update(request, role_id):
             },
             status=status.HTTP_200_OK,
         )
-    except ValueError as error:
+    except Exception as error:
         return Response(
             {
                 "success": False,
-                "message": str(error),
+                "message": f"Role update failed: {str(error)}",
             },
-            status=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
 @api_view(["DELETE"])
-def delete(request, role_id):
+def role_delete(request, pk):
     try:
-        delete_role(role_id)
+        role = RoleModel.objects.get(id=pk)
+        role.delete()
         return Response(
             {
                 "success": True,
@@ -189,11 +232,11 @@ def delete(request, role_id):
             },
             status=status.HTTP_200_OK,
         )
-    except ValueError as error:
+    except Exception as error:
         return Response(
             {
                 "success": False,
-                "message": str(error),
+                "message": f"Role deletion failed: {str(error)}",
             },
-            status=status.HTTP_404_NOT_FOUND,
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

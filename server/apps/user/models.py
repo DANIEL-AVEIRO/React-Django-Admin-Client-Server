@@ -30,11 +30,10 @@ class UserManager(BaseUserManager):
 
 class UserModel(BaseModel, AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100, blank=True)
-    phone_number = models.CharField(max_length=15, blank=True)
+    username = models.CharField(max_length=100)
+    phone = models.CharField(max_length=15, blank=True)
     address = models.TextField(blank=True)
-    profile_photo = models.ImageField(upload_to="profile_photos/", blank=True)
+    profile = models.ImageField(upload_to="profiles/", blank=True)
     role = models.ForeignKey(
         RoleModel, on_delete=models.PROTECT, related_name="users", null=True, blank=True
     )
@@ -43,10 +42,6 @@ class UserModel(BaseModel, AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(default=False)
 
     objects = UserManager()
-
-    @property
-    def full_name(self):
-        return f"{self.first_name} {self.last_name}"
 
     USERNAME_FIELD = "email"
 

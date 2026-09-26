@@ -3,6 +3,8 @@ import MainLayout from "../layouts/MainLayout";
 import AuthLayout from "../layouts/AuthLayout";
 import Home from "../pages/home/Home";
 import Profile from "../pages/profile/Profile";
+import UpdateProfile from "../pages/profile/UpdateProfile";
+import ChangePassword from "../pages/profile/ChangePassword";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import ProtectedRoute from "./ProtectedRoutes";
@@ -18,6 +20,8 @@ const AppRoutes = () => {
 
           <Route element={<ProtectedRoute />}>
             <Route path={path.profile} element={<Profile />} />
+            <Route path={path.updateProfile} element={<UpdateProfile />} />
+            <Route path={path.changePassword} element={<ChangePassword />} />
           </Route>
         </Route>
 

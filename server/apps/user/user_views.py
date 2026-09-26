@@ -27,12 +27,11 @@ def user_list(request):
                     {
                         "id": str(user.id),
                         "email": user.email,
-                        "first_name": user.first_name,
-                        "last_name": user.last_name,
-                        "phone_number": user.phone_number,
+                        "username": user.username,
+                        "phone": user.phone,
                         "address": user.address,
-                        "profile_photo": (
-                            user.profile_photo.url if user.profile_photo else None
+                        "profile": (
+                            user.profile.url if user.profile else None
                         ),
                         "role": user.role.name,
                         "is_active": user.is_active,
@@ -67,12 +66,11 @@ def user_details(request, pk):
                 "data": {
                     "id": str(user.id),
                     "email": user.email,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
-                    "phone_number": user.phone_number,
+                    "username": user.username,
+                    "phone": user.phone,
                     "address": user.address,
-                    "profile_photo": (
-                        user.profile_photo.url if user.profile_photo else None
+                    "profile": (
+                        user.profile.url if user.profile else None
                     ),
                     "role": {
                         "id": str(user.role.id),
@@ -105,18 +103,17 @@ def user_details(request, pk):
 def user_create(request):
     email = request.data.get("email")
     password = request.data.get("password")
-    first_name = request.data.get("first_name")
-    last_name = request.data.get("last_name")
-    phone_number = request.data.get("phone_number")
+    username = request.data.get("username")
+    phone = request.data.get("phone")
     address = request.data.get("address")
-    profile_photo = request.data.get("profile_photo")
+    profile = request.data.get("profile")
     role = request.data.get("role")
 
-    if not email or not password or not first_name or not last_name or not role:
+    if not email or not password or not username or not role:
         return Response(
             {
                 "success": False,
-                "message": "Email, password, first name, last name and role are required.",
+                "message": "Email, password, username and role are required.",
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
@@ -125,11 +122,10 @@ def user_create(request):
         user = UserModel.objects.create_user(
             email=email,
             password=password,
-            first_name=first_name,
-            last_name=last_name,
-            phone_number=phone_number,
+            username=username,
+            phone=phone,
             address=address,
-            profile_photo=profile_photo,
+            profile=profile,
             role=role,
         )
         user.save()
@@ -140,12 +136,11 @@ def user_create(request):
                 "data": {
                     "id": str(user.id),
                     "email": user.email,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
-                    "phone_number": user.phone_number,
+                    "username": user.username,
+                    "phone": user.phone,
                     "address": user.address,
-                    "profile_photo": (
-                        user.profile_photo.url if user.profile_photo else None
+                    "profile": (
+                        user.profile.url if user.profile else None
                     ),
                     "role": user.role.name,
                     "is_active": user.is_active,
@@ -171,18 +166,17 @@ def user_create(request):
 def user_update(request, pk):
     email = request.data.get("email")
     password = request.data.get("password")
-    first_name = request.data.get("first_name")
-    last_name = request.data.get("last_name")
-    phone_number = request.data.get("phone_number")
+    username = request.data.get("username")
+    phone = request.data.get("phone")
     address = request.data.get("address")
-    profile_photo = request.data.get("profile_photo")
+    profile = request.data.get("profile")
     role = request.data.get("role")
 
-    if not email or not password or not first_name or not last_name or not role:
+    if not email or not password or not username or not role:
         return Response(
             {
                 "success": False,
-                "message": "Email, password, first name, last name and role are required.",
+                "message": "Email, password, username and role are required.",
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
@@ -200,11 +194,10 @@ def user_update(request, pk):
         user.email = email
         if password:
             user.set_password(password)
-        user.first_name = first_name
-        user.last_name = last_name
-        user.phone_number = phone_number
+        user.username = username
+        user.phone = phone
         user.address = address
-        user.profile_photo = profile_photo
+        user.profile = profile
         user.role = role
         user.save()
         return Response(
@@ -214,12 +207,11 @@ def user_update(request, pk):
                 "data": {
                     "id": str(user.id),
                     "email": user.email,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
-                    "phone_number": user.phone_number,
+                    "username": user.username,
+                    "phone": user.phone,
                     "address": user.address,
-                    "profile_photo": (
-                        user.profile_photo.url if user.profile_photo else None
+                    "profile": (
+                        user.profile.url if user.profile else None
                     ),
                     "role": user.role.name,
                     "is_active": user.is_active,
@@ -245,8 +237,8 @@ def user_update(request, pk):
 def user_delete(request, pk):
     try:
         user = UserModel.objects.get(id=pk)
-        if user.profile_photo:
-            user.profile_photo.delete()
+        if user.profile:
+            user.profile.delete()
         user.delete()
         return Response(
             {

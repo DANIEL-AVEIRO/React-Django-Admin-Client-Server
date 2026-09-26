@@ -4,6 +4,7 @@ from .auth_views import (
     login,
     register,
     profile,
+    update_profile,
     change_password,
     logout,
 )
@@ -13,6 +14,7 @@ urlpatterns = [
     path("register/", register, name="register"),
     path("login/", login, name="login"),
     path("profile/", profile, name="profile"),
+    path("update-profile/", update_profile, name="update-profile"),
     path("change-password/", change_password, name="change-password"),
     path("logout/", logout, name="logout"),
 ]

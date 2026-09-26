@@ -2,14 +2,17 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import path from "../../constants/path";
-import { login } from "../../api/services/auth";
+import { loginUser } from "../../api/services/auth";
+import { EyeIcon, EyeOff } from "lucide-react";
+import useAuth from "../../hooks/useAuth";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
+  const { login } = useAuth();
+  const [passwordToggle, setPasswordToggle] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -19,7 +22,8 @@ const Login = () => {
       return;
     }
     try {
-      const response = await login({ email, password });
+      const response = await loginUser({ email, password });
+      login(response);
       toast.success(response.message);
       navigate(path.home);
     } catch (error) {
@@ -54,16 +58,27 @@ const Login = () => {
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-sm font-medium text-slate-700 relative">
           Password
           <input
-            type="password"
+            type={passwordToggle ? "text" : "password"}
             placeholder="Enter your password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
           />
+          <button
+            type="button"
+            onClick={() => setPasswordToggle(!passwordToggle)}
+            className="absolute right-3 top-10 text-slate-500 cursor-pointer"
+          >
+            {passwordToggle ? (
+              <EyeIcon className="h-4 w-4" />
+            ) : (
+              <EyeOff className="h-4 w-4" />
+            )}
+          </button>
         </label>
         <button
           className="w-full rounded-xl bg-red-600 px-4 py-3 font-semibold text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"

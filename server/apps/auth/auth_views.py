@@ -21,8 +21,7 @@ def auth_health_check(request):
 def register(request):
     email = request.data.get("email")
     password = request.data.get("password")
-    first_name = request.data.get("first_name")
-    last_name = request.data.get("last_name", "")
+    username = request.data.get("username")
 
     if not email:
         return Response(
@@ -42,11 +41,11 @@ def register(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if not first_name:
+    if not username:
         return Response(
             {
                 "success": False,
-                "message": "First name is required.",
+                "message": "Username is required.",
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
@@ -55,8 +54,7 @@ def register(request):
         user = UserModel.objects.create_user(
             email=email,
             password=password,
-            first_name=first_name,
-            last_name=last_name,
+            username=username,
         )
         user.save()
 
@@ -67,8 +65,12 @@ def register(request):
                 "data": {
                     "id": str(user.id),
                     "email": user.email,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
+                    "username": user.username,
+                    "phone": user.phone,
+                    "address": user.address,
+                    "profile": request.build_absolute_uri(f"/{user.profile.url.lstrip('/')}")
+                    if user.profile
+                    else None,
                     "created_at": user.created_at,
                     "updated_at": user.updated_at,
                 },
@@ -130,8 +132,7 @@ def login(request):
                     "id": str(user.id),
                     "token": token.key,
                     "email": user.email,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
+                    "username": user.username,
                     "created_at": user.created_at,
                     "updated_at": user.updated_at,
                 },
@@ -161,8 +162,12 @@ def profile(request):
                     "data": {
                         "id": str(request.user.id),
                         "email": request.user.email,
-                        "first_name": request.user.first_name,
-                        "last_name": request.user.last_name,
+                        "username": request.user.username,
+                        "phone": request.user.phone,
+                        "address": request.user.address,
+                        "profile": request.build_absolute_uri(f"/{request.user.profile.url.lstrip('/')}")
+                        if request.user.profile
+                        else None,
                         "created_at": request.user.created_at,
                         "updated_at": request.user.updated_at,
                     },
@@ -192,27 +197,26 @@ def update_profile(request):
     try:
         if request.user.is_authenticated:
             email = request.data.get("email")
-            first_name = request.data.get("first_name")
-            last_name = request.data.get("last_name")
+            username = request.data.get("username")
             password = request.data.get("password")
-            profile_photo = request.data.get("profile_photo")
+            profile = request.data.get("profile")
             address = request.data.get("address")
-            phone_number = request.data.get("phone_number")
-            if not email or not first_name:
+            phone = request.data.get("phone")
+            if not email or not username:
                 return Response(
                     {
                         "success": False,
-                        "message": "Email and first name are required.",
+                        "message": "Email and username are required.",
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             user = UserModel.objects.get(id=request.user.id)
             user.email = email
-            user.first_name = first_name
-            user.last_name = last_name
-            user.profile_photo = profile_photo
+            user.username = username
+            if profile is not None:
+                user.profile = profile
             user.address = address
-            user.phone_number = phone_number
+            user.phone = phone
             if password:
                 user.set_password(password)
             user.save()
@@ -223,11 +227,12 @@ def update_profile(request):
                     "data": {
                         "id": str(user.id),
                         "email": user.email,
-                        "first_name": user.first_name,
-                        "last_name": user.last_name,
-                        "profile_photo": user.profile_photo,
+                        "username": user.username,
+                        "profile": request.build_absolute_uri(f"/{user.profile.url.lstrip('/')}")
+                        if user.profile
+                        else None,
                         "address": user.address,
-                        "phone_number": user.phone_number,
+                        "phone": user.phone,
                         "created_at": user.created_at,
                         "updated_at": user.updated_at,
                     },
@@ -285,6 +290,7 @@ def change_password(request):
                 )
             user.set_password(new_password)
             user.save()
+            Token.objects.filter(user=user).delete()
             return Response(
                 {
                     "success": True,
